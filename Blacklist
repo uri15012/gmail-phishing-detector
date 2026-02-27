@@ -1,0 +1,70 @@
+/**
+ * Blacklist.gs
+ * Manages the user's personal blacklist of senders and domains.
+ * Stored using PropertiesService — no database needed.
+ */
+
+var BLACKLIST_KEY = 'USER_BLACKLIST';
+
+// -------------------------------------------------------
+// Get the full blacklist as an array
+// -------------------------------------------------------
+function getBlacklist() {
+  var raw = PropertiesService.getUserProperties().getProperty(BLACKLIST_KEY);
+  return raw ? JSON.parse(raw) : []; // properties service can only store strings not arrays or objects 
+  // when we save the blacklist we save as string and when we read we convert to array
+}
+
+// -------------------------------------------------------
+// Add an entry to the blacklist (email or domain)
+// -------------------------------------------------------
+function addToBlacklist(entry) {
+  if (!entry || entry.trim() === '') {
+    return { success: false, message: 'Please enter an email or domain.' };
+  }
+
+  entry = entry.trim().toLowerCase();
+  var blacklist = getBlacklist();
+
+  if (blacklist.indexOf(entry) !== -1) {//-1 not found
+    return { success: false, message: entry + ' is already in your blacklist.' };
+  }
+
+  blacklist.push(entry);
+  PropertiesService.getUserProperties().setProperty(BLACKLIST_KEY, JSON.stringify(blacklist));
+  return { success: true, message: entry + ' added to blacklist.' };
+}
+
+// -------------------------------------------------------
+// Remove an entry from the blacklist
+// -------------------------------------------------------
+function removeFromBlacklist(entry) {
+  entry = entry.trim().toLowerCase();
+  var list = getBlacklist();
+  var index = list.indexOf(entry);
+
+  if (index === -1) {
+    return { success: false, message: entry + ' not found in blacklist.' };
+  }
+
+  list.splice(index, 1);
+  PropertiesService.getUserProperties().setProperty(BLACKLIST_KEY, JSON.stringify(list));
+  return { success: true, message: entry + ' removed from blacklist.' };
+}
+
+// -------------------------------------------------------
+// Check if a sender is blacklisted (by full email or domain)
+// -------------------------------------------------------
+function isBlacklisted(senderEmail) {
+  senderEmail = senderEmail.trim().toLowerCase();
+  var list = getBlacklist();
+
+  // Check full email match
+  if (list.indexOf(senderEmail) !== -1) return true;
+
+  // Check domain match (e.g. if 'evil.com' is blacklisted, block all @evil.com)
+  var domain = senderEmail.split('@')[1];
+  if (domain && list.indexOf(domain) !== -1) return true;//!==-1 is the domain in the blacklist
+
+  return false;
+}
