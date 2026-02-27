@@ -1,0 +1,76 @@
+/**
+ * BlacklistCard.gs
+ * Builds the card for viewing and managing the personal blacklist.
+ */
+
+function buildBlacklistCard() {
+  var card = CardService.newCardBuilder();
+  card.setName('blacklist');
+
+  var header = CardService.newCardHeader()
+    .setTitle('Personal Blacklist')
+    .setSubtitle('Manage blocked senders and domains');
+  card.setHeader(header);
+
+  // ---- Current Blacklist Entries ----
+  var listSection = CardService.newCardSection()
+    .setHeader('Blocked Entries');
+
+  var blacklist = getBlacklist();
+
+  if (blacklist.length === 0) {
+    listSection.addWidget(
+      CardService.newTextParagraph()
+        .setText('Your blacklist is empty. Add senders or domains below.')
+    );
+  } else {
+    for (var i = 0; i < blacklist.length; i++) {
+      var entry = blacklist[i];
+      var removeAction = CardService.newAction()
+        .setFunctionName('handleRemoveFromBlacklist')
+        .setParameters({ entry: entry });
+
+      listSection.addWidget(
+        CardService.newDecoratedText()
+          .setText(entry)
+          .setButton(
+            CardService.newTextButton()
+              .setText('Remove')
+              .setOnClickAction(removeAction)
+              .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+              .setBackgroundColor('#c0392b')
+          )
+      );
+    }
+  }
+
+  card.addSection(listSection);
+
+  // ---- Add New Entry ----
+  var addSection = CardService.newCardSection()
+    .setHeader('Add New Entry');
+
+  addSection.addWidget(
+    CardService.newTextInput()
+      .setFieldName('new_entry')
+      .setTitle('Email or Domain')
+      .setHint('e.g. spam@example.com or example.com')
+  );
+
+  var addAction = CardService.newAction()
+    .setFunctionName('handleAddToBlacklist');
+
+  addSection.addWidget(
+    CardService.newTextButton()
+      .setText('Add to Blacklist')
+      .setOnClickAction(addAction)
+      .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+      .setBackgroundColor('#27ae60')
+  );
+
+  card.addSection(addSection);
+
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(card.build()))
+    .build();
+}
